@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
+import { XR, ARButton, createXRStore } from '@react-three/xr';
 import Tank from '../models/Tank';
 import TankControls from '../controls/TankSizeControls';
 import { Button } from '@/components/ui/button';
 import { CameraController } from '../controls/CameraController';
 import ObjectList from '../object/ObjectList';
-import { AquariumObject } from '@/types/aquarium';
+import { AquariumObject, PlacedObject } from '@/types/aquarium';
 import PlaceholderObject from '../models/PlaceholderObject';
 import ObjectTransformControls from '../controls/ObjectTransformControls';
 import HelpPanel from '../controls/HelpPanel';
@@ -13,6 +14,8 @@ import ModelUploader from '../controls/ModelUploader';
 import { Mesh } from 'three';
 import * as THREE from 'three';
 import { HelpCircle } from 'lucide-react';
+import { useARSession } from '@/hooks/useARSession';
+import ARController from '../ar/ARController';
 
 interface UploadedModel {
   id: string;
@@ -26,6 +29,11 @@ export default function BasicScene() {
     height: 60,
     depth: 60,
   });
+
+  // AR状態管理
+  const [isAREnabled, setIsAREnabled] = useState(false);
+  const arSession = useARSession();
+  const [store] = useState(() => createXRStore());
 
   // ドラッグ状態をグローバルに管理
   const [isObjectDragging, setIsObjectDragging] = useState(false);
@@ -95,6 +103,8 @@ const handleModelUpload = (file: File) => {
       position: [0, 0, 0] as [number, number, number],
       // 回転も初期状態（0, 0, 0）に設定します
       rotation: [0, 0, 0] as [number, number, number],
+      // スケールも初期状態（1, 1, 1）に設定します
+      scale: [1, 1, 1] as [number, number, number],
     };
 
     // 作成した新しいオブジェクトを、既存のオブジェクトリストに追加します
@@ -156,28 +166,28 @@ const handleModelUpload = (file: File) => {
   };
 
   const handleResetCamera = () => {
-    window.resetCamera?.();
+    (window as any).resetCamera?.();
   };
 
   // placedObjectsを状態として管理
-  const [placedObjects, setPlacedObjects] = useState([
+  const [placedObjects, setPlacedObjects] = useState<PlacedObject[]>([
     {
       id: 'plant1',
-      type: 'plant' as const,
+      type: 'plant',
       position: [0, 0, 0],
       rotation: [0, 0, 0],
       scale: [1, 1, 1],
     },
     {
       id: 'stone1',
-      type: 'stone' as const,
+      type: 'stone',
       position: [0, 0, 0],
       rotation: [0, 0, 0],
       scale: [1, 1, 1],
     },
     {
       id: 'wood1',
-      type: 'wood' as const,
+      type: 'wood',
       position: [0, 0, 0],
       rotation: [0, 0, 0],
       scale: [1, 1, 1],
@@ -210,6 +220,39 @@ const handleModelUpload = (file: File) => {
 
   return (
     <div className="relative w-screen h-screen">
+      {/* AR開始ボタン */}
+      <div className="absolute top-4 left-4 z-10">
+        {arSession.isSupported ? (
+          <ARButton
+            store={store}
+            onClick={() => {
+              if (isAREnabled) {
+                setIsAREnabled(false);
+                arSession.endARSession();
+              } else {
+                setIsAREnabled(true);
+                arSession.startARSession();
+              }
+            }}
+          />
+        ) : (
+          <div className="bg-gray-800 text-white px-4 py-2 rounded-lg">
+            ARサポートなし
+          </div>
+        )}
+        {/* AR状態表示 */}
+        {arSession.error && (
+          <div className="mt-2 bg-red-800 text-white px-3 py-1 rounded text-sm">
+            {arSession.error}
+          </div>
+        )}
+        {arSession.isLoading && (
+          <div className="mt-2 bg-blue-800 text-white px-3 py-1 rounded text-sm">
+            AR起動中...
+          </div>
+        )}
+      </div>
+
       <Canvas
         camera={{
           position: [0, 7, 17],
@@ -218,49 +261,67 @@ const handleModelUpload = (file: File) => {
           far: 1000,
         }}
       >
-        <ambientLight intensity={0.5} />
-        <pointLight position={[10, 10, 10]} />
-        <Tank width={tankSize.width} height={tankSize.height} depth={tankSize.depth} />
-        <mesh
-          position={[0, -0.01, 0]} // わずかに下げる
-          rotation={[-Math.PI / 2, 0, 0]} // 水平に寝かせる
-          onClick={() => setSelectedObjectId(null)}
-        >
-          <planeGeometry args={[100, 100]} />
-          <meshBasicMaterial transparent opacity={0} side={THREE.DoubleSide} depthTest={false} />
-        </mesh>
-
-        {/* サンプルのプレースホルダーオブジェクトを3種類配置 */}
-        {placedObjects.map(obj => (
-          <group key={obj.id}>
-            <PlaceholderObject
-              type={obj.type}
-              position={obj.position}
-              rotation={obj.rotation}
-              selected={selectedObjectId === obj.id}
-              onClick={() => handleObjectClick(obj.id)}
-              onMeshReady={mesh => handleMeshReady(obj.id, mesh)}
-              onDragStateChange={handleDragStateChange}
-            />
-            {/* meshRefsの参照が存在することを確認 */}
-            {meshRefs[obj.id] && (
-              <ObjectTransformControls
-                objectId={obj.id}
-                position={obj.position}
-                selected={selectedObjectId === obj.id}
-                mesh={meshRefs[obj.id]}
-                mode={transformMode}
-                onPositionChange={handleObjectMove}
-                onRotationChange={handleObjectRotate}
-                onScaleChange={handleObjectScale}
-              />
+        <XR store={store}>
+          <ARController
+            placedObjects={placedObjects}
+            selectedObjectId={selectedObjectId}
+            onObjectPlace={(position, rotation) => {
+              // AR環境でオブジェクトを配置する際のハンドラー
+              console.log('Object placed in AR:', position, rotation);
+            }}
+            onObjectMove={handleObjectMove}
+          >
+            {/* 通常の3Dシーン（ARでない場合のみ表示） */}
+            {!isAREnabled && (
+              <>
+                <ambientLight intensity={0.5} />
+                <pointLight position={[10, 10, 10]} />
+                <Tank width={tankSize.width} height={tankSize.height} depth={tankSize.depth} />
+                <mesh
+                  position={[0, -0.01, 0]}
+                  rotation={[-Math.PI / 2, 0, 0]}
+                  onClick={() => setSelectedObjectId(null)}
+                >
+                  <planeGeometry args={[100, 100]} />
+                  <meshBasicMaterial transparent opacity={0} side={THREE.DoubleSide} depthTest={false} />
+                </mesh>
+              </>
             )}
-          </group>
-        ))}
 
-        <CameraController />
-        <axesHelper args={[5]} />
-      </Canvas>
+            {/* 配置されたオブジェクト（AR・通常モード共通） */}
+            {placedObjects.map(obj => (
+              <group key={obj.id}>
+                <PlaceholderObject
+                  type={obj.type}
+                  position={obj.position as [number, number, number]}
+                  rotation={obj.rotation as [number, number, number]}
+                  scale={obj.scale as [number, number, number]}
+                  selected={selectedObjectId === obj.id}
+                  onClick={() => handleObjectClick(obj.id)}
+                  onMeshReady={mesh => handleMeshReady(obj.id, mesh)}
+                  onDragStateChange={handleDragStateChange}
+                />
+                {/* ARモードでない場合のみトランスフォームコントロールを表示 */}
+                {!isAREnabled && meshRefs[obj.id] && (
+                  <ObjectTransformControls
+                    objectId={obj.id}
+                    selected={selectedObjectId === obj.id}
+                    mesh={meshRefs[obj.id]}
+                    mode={transformMode}
+                    onPositionChange={handleObjectMove}
+                    onRotationChange={handleObjectRotate}
+                    onScaleChange={handleObjectScale}
+                  />
+                )}
+              </group>
+            ))}
+          </ARController>
+
+          {/* 通常モードでのみカメラコントローラーを有効化 */}
+          {!isAREnabled && <CameraController />}
+          {!isAREnabled && <axesHelper args={[5]} />}
+        </XR>
+        </Canvas>
 
       <div className="absolute top-4 right-4 h-screen overflow-scroll">
         <div className="mb-2 flex justify-end">

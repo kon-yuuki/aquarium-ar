@@ -8,3 +8,12 @@ export interface AquariumObject {
   type: AquariumObjectType; // オブジェクトの種類（水草、石、流木）
   thumbnailUrl: string; // サムネイル画像のパス
 }
+
+// 配置されたオブジェクトのインターフェース
+export interface PlacedObject {
+  id: string;
+  type: AquariumObjectType;
+  position: [number, number, number];
+  rotation: [number, number, number];
+  scale: [number, number, number];
+}

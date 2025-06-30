@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Upload } from 'lucide-react';
+import ModelPreview from '../models/ModelPreview';
 
 interface ModelUploaderProps {
   onModelUpload?: (file: File) => void;
@@ -69,11 +70,27 @@ export default function ModelUploader({ onModelUpload }: ModelUploaderProps) {
           </Button>
         </div>
 
-        {/* 選択されたファイルの表示 */}
+        {/* 選択されたファイルの表示とプレビュー */}
         {selectedFile && (
-          <div className="mt-4">
-            <p className="text-sm font-medium">選択されたファイル:</p>
-            <p className="text-sm text-gray-500">{selectedFile.name}</p>
+          <div className="mt-4 space-y-3">
+            <div>
+              <p className="text-sm font-medium">選択されたファイル:</p>
+              <p className="text-sm text-gray-500">{selectedFile.name}</p>
+              <p className="text-xs text-gray-400">
+                サイズ: {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+              </p>
+            </div>
+            
+            {/* 3Dモデルプレビュー */}
+            <div>
+              <p className="text-sm font-medium mb-2">プレビュー:</p>
+              <ModelPreview 
+                file={selectedFile}
+                width={280}
+                height={200}
+                className="mx-auto"
+              />
+            </div>
           </div>
         )}
       </CardContent>

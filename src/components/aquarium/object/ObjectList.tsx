@@ -1,7 +1,7 @@
-import React from 'react';
 import { AquariumObject } from '../../../types/aquarium';
 import { sampleObjects } from '../../../data/sampleObjects';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import ModelPreview from '../models/ModelPreview';
 
 interface UploadedModel {
   id: string;
@@ -63,10 +63,13 @@ export default function ObjectList({ onSelectObject,uploadedModels = [] }: Objec
                   onClick={() => handleUploadedModelClick(model)}
                   className="p-2 cursor-pointer hover:bg-gray-100 rounded flex items-center gap-3"
                 >
-                  {/* 仮のサムネイル画像 */}
-                  <div className="w-16 h-16 bg-gray-200 rounded flex items-center justify-center text-gray-500">
-                    3D
-                  </div>
+                  {/* 3Dモデルプレビュー */}
+                  <ModelPreview 
+                    file={model.file}
+                    width={64}
+                    height={64}
+                    className="rounded"
+                  />
                   <span>{model.name}</span>
                 </div>
               ))}

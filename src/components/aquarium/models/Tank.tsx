@@ -1,5 +1,4 @@
-import React from 'react';
-import { ThreeElements } from '@react-three/fiber';
+{/* ThreeElements import removed as it's not used */}
 
 interface TankProps {
   width?: number; // センチメートル単位での幅
@@ -20,7 +19,6 @@ export default function Tank({ width = 60, height = 36, depth = 30 }: TankProps)
 
   // 外寸の計算（ガラスの厚みを加算）
   const outerWidth = tankWidth + glassThickness * 2;
-  const outerHeight = tankHeight + glassThickness;
   const outerDepth = tankDepth + glassThickness * 2;
 
   return (

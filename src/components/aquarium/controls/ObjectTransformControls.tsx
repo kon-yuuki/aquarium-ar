@@ -1,11 +1,10 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { TransformControls } from '@react-three/drei';
-import { Mesh } from 'three';
 import { useThree } from '@react-three/fiber';
+import * as THREE from 'three';
 
 interface ObjectTransformControlsProps {
   objectId: string;
-  position: [number, number, number];
   selected: boolean;
   mesh: THREE.Mesh | null;  // meshはnullの可能性もあるため
   mode: 'translate' | 'rotate' | 'scale';
@@ -17,7 +16,6 @@ interface ObjectTransformControlsProps {
 
 export default function ObjectTransformControls({
   objectId,
-  position,
   selected,
   mesh,
   mode,
@@ -27,7 +25,7 @@ export default function ObjectTransformControls({
   onDragStateChange
 }: ObjectTransformControlsProps) {
   const { camera, gl } = useThree();
-  const transformRef = useRef<THREE.TransformControls | null>(null);
+  const transformRef = useRef<any>(null);
   const isDraggingRef = useRef(false);
 
   useEffect(() => {
@@ -60,25 +58,26 @@ export default function ObjectTransformControls({
       domElement={gl.domElement}
       mode={mode}
       onObjectChange={(e) => {
-        if (!e.target || !isDraggingRef.current) return;
+        if (!e?.target || !isDraggingRef.current) return;
 
-        if (mode === 'translate' && e.target.position) {
+        const target = e.target as THREE.Object3D;
+        if (mode === 'translate' && target.position) {
           onPositionChange?.(objectId, [
-            e.target.position.x,
-            e.target.position.y,
-            e.target.position.z,
+            target.position.x,
+            target.position.y,
+            target.position.z,
           ]);
-        } else if (mode === 'rotate' && e.target.rotation) {
+        } else if (mode === 'rotate' && target.rotation) {
           onRotationChange?.(objectId, [
-            e.target.rotation.x,
-            e.target.rotation.y,
-            e.target.rotation.z,
+            target.rotation.x,
+            target.rotation.y,
+            target.rotation.z,
           ]);
-        } else if (mode === 'scale' && e.target.scale) {
+        } else if (mode === 'scale' && target.scale) {
           onScaleChange?.(objectId, [
-            e.target.scale.x,
-            e.target.scale.y,
-            e.target.scale.z,
+            target.scale.x,
+            target.scale.y,
+            target.scale.z,
           ]);
         }
       }}

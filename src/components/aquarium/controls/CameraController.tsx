@@ -5,7 +5,7 @@ export function CameraController() {
   const { camera } = useThree();
 
   // シンプルなリセット関数を定義します
-  window.resetCamera = () => {
+  (window as any).resetCamera = () => {
     // カメラを初期位置に移動します
     camera.position.set(0, 7, 17);
     // カメラを原点に向けます

@@ -1,7 +1,6 @@
-import React, { useRef, useLayoutEffect, useEffect } from 'react';
+import React, { useRef } from 'react';
 import { AquariumObjectType } from '@/types/aquarium';
 import { Mesh } from 'three';
-import { useThree } from '@react-three/fiber';
 
 interface PlaceholderObjectProps {
   type: AquariumObjectType;
@@ -19,6 +18,7 @@ const typeColors: Record<AquariumObjectType, string> = {
   plant: '#4CAF50', // 水草は緑色
   stone: '#607D8B', // 石は灰色
   wood: '#795548', // 流木は茶色
+  model: '#9C27B0', // アップロードされたモデルは紫色
 };
 
 // オブジェクトの種類ごとのサイズを定義 [幅, 高さ, 奥行き]
@@ -26,6 +26,7 @@ const typeSizes: Record<AquariumObjectType, [number, number, number]> = {
   plant: [0.5, 1, 0.5], // 水草は細長い形状
   stone: [0.8, 0.6, 0.8], // 石はやや扁平な形状
   wood: [0.4, 1.2, 0.4], // 流木は細長い形状
+  model: [0.6, 0.8, 0.6], // アップロードされたモデルは中程度のサイズ
 };
 
 // アウトラインのサイズ倍率（1.1 = 10%大きい）
